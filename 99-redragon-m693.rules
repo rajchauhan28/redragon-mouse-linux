@@ -1,0 +1,4 @@
+# Redragon M693 (Areson/Compx 25a7:fa7b wired, 25a7:fa7c 2.4G receiver)
+# Grant users in the 'input' group access to the vendor hidraw interface.
+KERNEL=="hidraw*", ATTRS{idVendor}=="25a7", ATTRS{idProduct}=="fa7b", MODE="0660", GROUP="input", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="25a7", ATTRS{idProduct}=="fa7c", MODE="0660", GROUP="input", TAG+="uaccess"

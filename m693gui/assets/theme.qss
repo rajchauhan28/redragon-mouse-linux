@@ -1,0 +1,237 @@
+/* m693-gui — dark/red theme approximating the stock Redragon tool. */
+
+QWidget {
+    background: #141414;
+    color: #d8d8d8;
+    font-family: "Inter", "Noto Sans", "DejaVu Sans", sans-serif;
+    font-size: 13px;
+}
+
+#Root {
+    background: #101010;
+    border: 1px solid #c8102e;
+}
+
+/* ------------------------------------------------------------- title bar */
+#TitleBar {
+    background: #101010;
+}
+#Wordmark {
+    color: #c8102e;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 3px;
+}
+#TitleButton, #CloseButton {
+    background: transparent;
+    border: none;
+    color: #cfcfcf;
+    font-size: 15px;
+    font-weight: 700;
+    min-width: 34px;
+    max-width: 34px;
+    min-height: 26px;
+    padding: 0;
+}
+#TitleButton:hover, #CloseButton:hover {
+    color: #ffffff;
+    background: #262626;
+}
+#CloseButton:hover {
+    background: #c8102e;
+    color: #ffffff;
+}
+
+/* ------------------------------------------------------------ navigation */
+#Nav {
+    background: #101010;
+    padding: 8px 0;
+}
+#NavButton {
+    background: #232323;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    min-width: 54px;
+    min-height: 46px;
+    font-size: 20px;
+    color: #d0d0d0;
+}
+#NavButton:hover {
+    border-color: #6a6a6a;
+    background: #2c2c2c;
+}
+#NavButton:checked {
+    background: #c8102e;
+    border-color: #c8102e;
+    color: #ffffff;
+}
+/* Keyboard focus has to be visible: this window is used to reconfigure the
+   very mouse you would otherwise navigate it with. */
+#Nav:focus, #NavButton:focus {
+    border: 2px solid #ff4d6a;
+}
+QPushButton:focus, QComboBox:focus, QSpinBox:focus, QSlider:focus {
+    border: 1px solid #ff4d6a;
+}
+/* Note the selector: `QRadioButton:focus::indicator` does not parse, and Qt
+   then applies the declaration to every radio button rather than dropping it,
+   which paints a focus ring on all of them at once. */
+QCheckBox:focus, QRadioButton:focus {
+    color: #ffffff;
+    border: 1px solid #ff4d6a;
+    border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------- panels */
+QLabel {
+    background: transparent;
+}
+QCheckBox, QRadioButton {
+    background: transparent;
+}
+
+#Panel {
+    background: #1e1e1e;
+    border: 1px solid #2e2e2e;
+    border-radius: 3px;
+}
+#PanelTitle {
+    color: #f0f0f0;
+    font-size: 19px;
+    font-weight: 700;
+}
+#Hint {
+    color: #8a8a8a;
+}
+#Battery {
+    color: #b4b4b4;
+    padding-right: 10px;
+}
+/* The mouse only warns on the wheel LED once it is already blinking red. */
+#Battery[low="true"] {
+    color: #ff5f5f;
+    font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- banner */
+#Banner {
+    border: none;
+    padding: 9px 14px;
+    font-weight: 600;
+    color: #141414;
+}
+#Banner[severity="warn"]  { background: #d98c1f; }
+#Banner[severity="error"] { background: #c8102e; }
+#Banner[severity="info"]  { background: #2f6fb0; }
+
+#Banner[severity="warn"]  #BannerText { color: #241703; }
+#Banner[severity="error"] #BannerText { color: #ffffff; }
+#Banner[severity="info"]  #BannerText { color: #ffffff; }
+
+#BannerAction {
+    background: rgba(0, 0, 0, 0.30);
+    border: 1px solid rgba(0, 0, 0, 0.45);
+    border-radius: 3px;
+    padding: 4px 14px;
+    color: #ffffff;
+    font-weight: 700;
+}
+#BannerAction:hover { background: rgba(0, 0, 0, 0.5); }
+
+/* --------------------------------------------------------------- widgets */
+QPushButton {
+    background: #262626;
+    border: 1px solid #c8102e;
+    border-radius: 3px;
+    padding: 6px 16px;
+    color: #e8e8e8;
+}
+QPushButton:hover  { background: #333333; }
+QPushButton:pressed{ background: #c8102e; color: #ffffff; }
+QPushButton:disabled {
+    border-color: #444444;
+    color: #666666;
+    background: #1c1c1c;
+}
+
+QSpinBox {
+    background: #2a2a2a;
+    border: 1px solid #444444;
+    border-radius: 3px;
+    padding: 3px 6px;
+    min-height: 22px;
+}
+QSpinBox:hover { border-color: #c8102e; }
+
+QComboBox {
+    background: #2a2a2a;
+    border: 1px solid #444444;
+    border-radius: 3px;
+    padding: 4px 10px;
+    min-height: 22px;
+}
+QComboBox:hover { border-color: #c8102e; }
+QComboBox::drop-down { border: none; width: 18px; }
+QComboBox::down-arrow {
+    image: url(@ASSETS@/arrow-down.svg);
+    width: 10px;
+    height: 7px;
+    margin-right: 6px;
+}
+QComboBox QAbstractItemView {
+    background: #212121;
+    border: 1px solid #c8102e;
+    selection-background-color: #c8102e;
+    outline: none;
+}
+
+QSlider::groove:horizontal {
+    height: 3px;
+    background: #3a3a3a;
+    border-radius: 1px;
+}
+QSlider::sub-page:horizontal {
+    background: #c8102e;
+    border-radius: 1px;
+}
+QSlider::handle:horizontal {
+    background: #c8102e;
+    width: 12px;
+    height: 12px;
+    margin: -5px 0;
+    border-radius: 6px;
+}
+QSlider::handle:horizontal:hover { background: #e8394f; }
+
+QRadioButton, QCheckBox { spacing: 7px; padding: 2px 0; }
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 13px;
+    height: 13px;
+    border: 1px solid #c8102e;
+    background: #1a1a1a;
+}
+QRadioButton::indicator { border-radius: 7px; }
+QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+    background: #c8102e;
+}
+
+QStatusBar {
+    background: #101010;
+    color: #7d7d7d;
+}
+QStatusBar::item { border: none; }
+
+QToolTip {
+    background: #1e1e1e;
+    color: #e8e8e8;
+    border: 1px solid #c8102e;
+    padding: 4px;
+}
+
+QLabel#Callout {
+    background: #242424;
+    border: 1px solid #6a6a6a;
+    border-radius: 12px;
+    color: #cfcfcf;
+    font-weight: 700;
+}

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Redragon M693
+GenericName=Mouse Configuration
+Comment=Configure the buttons, DPI stages and lighting of a Redragon M693-RGB
+Exec=m693-gui
+Icon=m693-gui
+Terminal=false
+Categories=Settings;HardwareSettings;
+Keywords=mouse;dpi;rgb;redragon;m693;
+StartupNotify=true

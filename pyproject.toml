@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "m693ctl"
+version = "1.2.2"
+description = "Userspace driver and configuration GUI for the Redragon M693-RGB mouse"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+classifiers = [
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+]
+
+# The driver and the CLI have no dependencies at all - they speak hidraw
+# directly.  Qt is only needed for the GUI, so it is an extra.
+dependencies = []
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.5"]
+
+[project.scripts]
+m693ctl = "m693.cli:main"
+
+[project.gui-scripts]
+m693-gui = "m693gui.app:main"
+
+[tool.setuptools]
+packages = ["m693", "m693gui", "m693gui.tabs", "m693gui.widgets"]
+
+[tool.setuptools.package-data]
+m693 = ["stock-profile.bin"]
+m693gui = ["assets/*.qss", "assets/*.svg", "assets/device/*.png"]

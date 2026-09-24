@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.egg-info/
+pkg/
+src/
+m693-src/
+*.pkg.tar.zst
+m693gui/assets/device/
+# Regenerable code graph (graphify update .)
+graphify-out/

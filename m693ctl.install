@@ -1,0 +1,26 @@
+post_install() {
+    udevadm control --reload-rules 2>/dev/null || true
+    udevadm trigger --subsystem-match=hidraw 2>/dev/null || true
+    cat <<'EOF'
+
+m693ctl installed.
+
+The udev rule tags the mouse's control interface with uaccess, which covers a
+normal logged-in desktop session. If you are on a setup where that does not
+apply (a remote session, or no logind seat), add yourself to the input group:
+
+    sudo usermod -aG input "$USER"      # then log out and back in
+
+Re-plug the receiver, then check with:  m693ctl list
+The graphical tool is m693-gui, and needs the optional pyside6 package.
+
+EOF
+}
+
+post_upgrade() {
+    udevadm control --reload-rules 2>/dev/null || true
+}
+
+post_remove() {
+    udevadm control --reload-rules 2>/dev/null || true
+}
