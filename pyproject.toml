@@ -9,6 +9,7 @@ description = "Userspace driver and configuration GUI for the Redragon M693-RGB 
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
+authors = [{ name = "Raj Singh Chauhan" }]
 keywords = [
     "redragon",
     "m693",
@@ -50,6 +51,7 @@ m693ctl = "m693.cli:main"
 m693-gui = "m693gui.app:main"
 
 [tool.setuptools]
+include-package-data = false
 packages = ["m693", "m693gui", "m693gui.tabs", "m693gui.widgets"]
 
 [tool.setuptools.package-data]

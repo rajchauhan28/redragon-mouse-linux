@@ -2,8 +2,9 @@
 
 [![CI](https://github.com/rajchauhan28/redragon-mouse-linux/actions/workflows/ci.yml/badge.svg)](https://github.com/rajchauhan28/redragon-mouse-linux/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/rajchauhan28/redragon-mouse-linux)](https://github.com/rajchauhan28/redragon-mouse-linux/releases)
-[![License: MIT](https://img.shields.io/github/license/rajchauhan28/redragon-mouse-linux)](LICENSE)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B%20(zero%20deps)-blue)](pyproject.toml)
+[![PyPI](https://img.shields.io/pypi/v/m693ctl)](https://pypi.org/project/m693ctl/)
+[![License: MIT](https://img.shields.io/github/license/rajchauhan28/redragon-mouse-linux)](https://github.com/rajchauhan28/redragon-mouse-linux/blob/master/LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B%20(zero%20deps)-blue)](https://github.com/rajchauhan28/redragon-mouse-linux/blob/master/pyproject.toml)
 
 > **Disclaimer:** This project is not from the actual Redragon company. Use it at your own risk. This is an open-source project created only to make life easier for Redragon mouse users on Linux. For other mouse types, I'll be happy to discuss further if anyone with another Redragon mouse is willing to participate in testing.
 
@@ -18,7 +19,7 @@ A userspace driver for the Redragon M693-RGB gaming mouse, reimplementing what
 the Windows-only `OemDrv.exe` configuration tool does. No kernel module, no
 Wine — it speaks the vendor HID protocol directly over `hidraw`.
 
-See [PROTOCOL.md](PROTOCOL.md) for how the protocol was recovered and what
+See [PROTOCOL.md](https://github.com/rajchauhan28/redragon-mouse-linux/blob/master/PROTOCOL.md) for how the protocol was recovered and what
 every byte of the mouse's configuration memory means.
 
 Pure Python 3.9+, no third-party dependencies.
@@ -41,9 +42,11 @@ tools/install.sh                 # udev rule, input group, desktop entry
 pipx install '.[gui]'            # or: pip install --user '.[gui]'
 ```
 
-Or install the CLI/GUI straight from GitHub with `pipx` (then drop [`99-redragon-m693.rules`](99-redragon-m693.rules) into `/etc/udev/rules.d/`):
+Or install directly with `pipx` (then drop [`99-redragon-m693.rules`](https://github.com/rajchauhan28/redragon-mouse-linux/blob/master/99-redragon-m693.rules) into `/etc/udev/rules.d/`):
 
 ```sh
+pipx install 'm693ctl[gui]'      # from PyPI (use plain m693ctl for CLI-only)
+# or latest master from GitHub:
 pipx install 'git+https://github.com/rajchauhan28/redragon-mouse-linux.git#egg=m693ctl[gui]'
 ```
 
@@ -171,7 +174,7 @@ installed package, since site-packages belongs to root.
 
 **Status: complete.** All four tabs — **Key Settings**, **DPI Settings**,
 **Macro** and **Lighting** — are implemented, and the app is packaged and
-keyboard-navigable. See [PLAN.md](PLAN.md).
+keyboard-navigable. See [PLAN.md](https://github.com/rajchauhan28/redragon-mouse-linux/blob/master/PLAN.md).
 
 The Lighting tab has two sync modes, as radio buttons: **Side strips + palm
 logo** leaves the wheel with its own effect and the drop-down picks which zone
