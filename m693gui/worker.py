@@ -59,14 +59,19 @@ class DeviceWorker(QObject):
 
     @Slot()
     def stop(self) -> None:
-        if self._timer:
+        if self._timer is not None:
             self._timer.stop()
+            self._timer.setParent(None)
+            self._timer = None
         self._close()
 
     def _close(self) -> None:
         if self._dev is not None:
             try:
-                self._dev.set_driver_status(False)
+                if hasattr(self._dev, "release"):
+                    self._dev.release()
+                else:
+                    self._dev.set_driver_status(False)
             except (DeviceError, OSError):
                 pass
             try:
@@ -86,11 +91,18 @@ class DeviceWorker(QObject):
             return True
         if not self._use_fake and not device_present():
             return False
+        dev = None
         try:
-            self._dev = open_backend(self._use_fake, self._path)
-            self._dev.set_driver_status(True)
+            dev = open_backend(self._use_fake, self._path)
+            dev.set_driver_status(True)
+            self._dev = dev
             return True
-        except DeviceError as exc:
+        except (DeviceError, OSError) as exc:
+            if dev is not None:
+                try:
+                    dev.close()
+                except OSError:
+                    pass
             self._dev = None
             self.error.emit(str(exc))
             return False

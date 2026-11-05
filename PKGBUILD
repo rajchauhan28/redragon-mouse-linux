@@ -1,6 +1,6 @@
 # Maintainer: Raj singh chauhan <rishabhjain27082004@gmail.com>
 pkgname=m693ctl
-pkgver=1.2.2
+pkgver=1.3.0
 pkgrel=1
 pkgdesc="Driver, CLI and GUI for the Redragon M693-RGB gaming mouse"
 arch=('any')
@@ -39,6 +39,7 @@ check() {
     python tests/test_unknowns.py
     python tests/test_retry.py
     python tests/test_battery.py
+    python tests/test_pairing_and_cleanup.py
     if python -c 'import PySide6' 2>/dev/null; then
         export QT_QPA_PLATFORM=offscreen
         for t in tests/test_*.py; do python "$t" || return 1; done

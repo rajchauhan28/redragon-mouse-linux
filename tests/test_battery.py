@@ -216,9 +216,6 @@ def test_status_bar_shows_and_flags_low_charge():
         assert win.battery_label.property("low") is False
         assert "11%" in win.battery_label.text()
     finally:
-        win.worker.stop()
-        win.thread.quit()
-        win.thread.wait(2000)
         win.close()
 
 

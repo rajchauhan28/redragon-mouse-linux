@@ -57,6 +57,9 @@ class FakeDevice:
     def set_driver_status(self, active: bool) -> None:
         pass
 
+    def release(self) -> None:
+        self.set_driver_status(False)
+
     def connect_status(self) -> int:
         return 0 if self._asleep() else 1
 

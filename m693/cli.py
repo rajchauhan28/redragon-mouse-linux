@@ -14,7 +14,13 @@ from . import macro as MACRO
 from . import presets as PRESETS
 from . import profile as P
 from . import transfer
-from .device import Device, DeviceError, find_devices
+from .device import (
+    PAIR_LISTENING,
+    Device,
+    DeviceError,
+    find_devices,
+    find_receivers,
+)
 
 
 def _color(text: str) -> tuple[int, int, int]:
@@ -54,6 +60,58 @@ def cmd_list(args) -> int:
     for node in nodes:
         print(node)
     return 0
+
+
+def cmd_pair(args, dev: Device) -> int:
+    was_online = dev.online()
+    if not args.force and was_online:
+        print(f"Already linked on {dev.path} (pass --force to re-pair).")
+        return 0
+
+    try:
+        state, _secs = dev.pair_status()
+    except DeviceError as exc:
+        if not exc.retryable:
+            raise DeviceError(
+                "pairing is only supported on the 2.4 GHz receiver (25a7:fa7c), "
+                "not over the USB-C cable"
+            ) from exc
+        raise
+
+    if args.force or state != PAIR_LISTENING:
+        dev.enter_pair()
+
+    print(
+        f"m693ctl: receiver {dev.path} is listening for 2.4 GHz pairing:\n"
+        "  1. Unplug the USB-C cable, flip the bottom switch to 2.4G, and hold\n"
+        "     the mouse within ~10 cm of the receiver.\n"
+        "  2. Hold Left + Middle + Right for 3-4 s until the LED flashes rapidly.",
+        file=sys.stderr,
+    )
+
+    deadline = (
+        None if args.timeout is None else time.monotonic() + args.timeout
+    )
+    while True:
+        online = dev.online()
+        if not online:
+            was_online = False
+        state, _secs = dev.pair_status()
+        if online and (not was_online or state != PAIR_LISTENING):
+            print(
+                f"Paired on {dev.path}. Leave the mouse untouched for ~5-15 s "
+                "so the RF link settles."
+            )
+            return 0
+        if deadline is not None and time.monotonic() >= deadline:
+            print(
+                "error: pairing timed out without an RF handshake.",
+                file=sys.stderr,
+            )
+            return 1
+        if state != PAIR_LISTENING:
+            dev.enter_pair()
+        time.sleep(0.4)
 
 
 def _battery(dev: Device) -> tuple[int, bool]:
@@ -428,6 +486,20 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("list", help="list detected M693 control interfaces")
     sub.add_parser("info", help="show the full current configuration")
 
+    p = sub.add_parser("pair", help="pair the mouse with its 2.4 GHz USB receiver")
+    p.add_argument(
+        "--timeout",
+        type=_wait,
+        default=60.0,
+        metavar="SECONDS",
+        help="how long to listen for pairing (default: 60, or 'forever')",
+    )
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help="enter pairing mode even if a mouse already appears linked",
+    )
+
     p = sub.add_parser("battery", help="show the battery charge")
     p.add_argument(
         "-q", "--quiet", action="store_true",
@@ -519,6 +591,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 HANDLERS = {
     "info": cmd_info,
+    "pair": cmd_pair,
     "battery": cmd_battery,
     "dump": cmd_dump,
     "restore": cmd_restore,
@@ -578,19 +651,31 @@ def main(argv: list[str] | None = None) -> int:
     wait = args.wait if hasattr(args, "wait") else None
     deadline = None if wait is None else time.monotonic() + wait
     try:
+        if args.cmd == "pair":
+            path = args.device
+            if path is None:
+                receivers = find_receivers()
+                if not receivers:
+                    raise DeviceError(
+                        "No 2.4 GHz receiver (25a7:fa7c) found. Plug the USB "
+                        "dongle in first."
+                    )
+                path = receivers[0]
+            with Device(path, retries=3) as dev:
+                return cmd_pair(args, dev)
         with Device(args.device) as dev:
-            dev.set_driver_status(True)
-            if not dev.wait_online(wait, notify=_asleep_notice):
-                print(
-                    "error: the mouse is not responding - it is asleep, powered "
-                    "off, or out of range. Move or click it, then retry.",
-                    file=sys.stderr,
-                )
-                return 1
             try:
+                dev.set_driver_status(True)
+                if not dev.wait_online(wait, notify=_asleep_notice):
+                    print(
+                        "error: the mouse is not responding - it is asleep, powered "
+                        "off, or out of range. Move or click it, then retry.",
+                        file=sys.stderr,
+                    )
+                    return 1
                 return _run(args, dev, deadline)
             finally:
-                dev.set_driver_status(False)
+                dev.release()
     except DeviceError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

@@ -52,15 +52,18 @@ report descriptor contains `06 02 FF 09 02 A1 01 85 08`.
 
 ### Packet format
 
-Both directions use the same 17-byte frame. From `SendCommand` at `0x451420`:
+Both directions use the same 17-byte frame. From `SendCommand` at `0x451420`
+(which prepends the report id `0x08` to a 15-byte `payload` buffer and writes
+the checksum to `[16]`, so `payload[k]` lands at wire byte `[1 + k]`):
 
 ```
 [0]     report id (0x08 out, 0x09 in)
-[1]     command
-[2]     address bits 15..8
-[3]     address bits 7..0
-[4]     length / sub-argument
-[5..15] payload
+[1]     command                 (payload[0])
+[2]     0x00, reserved          (payload[1])
+[3]     address bits 15..8      (payload[2])
+[4]     address bits 7..0       (payload[3])
+[5]     length / sub-argument   (payload[4])
+[6..15] data (up to 10 bytes)   (payload[5..14])
 [16]    checksum
 ```
 
@@ -106,22 +109,44 @@ the command it issued, and callers then test `resp[1]` for the error flag.
 
 | Cmd | Name in the binary | Notes |
 | --- | --- | --- |
+| `0x01` | `CheckPsd` (`0x44ff10`) | `payload[4]=8` + 4-byte nonce. Linked reply carries `CID, MID` (`33 01`) at `resp[9..10]`; unlinked receiver returns `00 00`. |
 | `0x02` | `TellDrvStatus` | `payload[4]=1, payload[5]=on`. Announces the config tool. |
 | `0x03` | `GetConnectStatus` | `resp[5]` = 1 when the mouse is linked and awake. |
 | `0x04` | `GetPower` | battery. `resp[5]` = percent, `resp[6]` = charging. |
+| `0x05` | — (receiver only) | Opens a ~24 s 2.4 GHz RF pairing window on `25a7:fa7c` (rejected with `0x01` on wired `fa7b`). |
+| `0x06` | — (receiver only) | Pairing status on `25a7:fa7c`: `resp[5]` = state (`0` idle/paired, `1` listening, `2` timed out), `resp[6]` = seconds remaining (`23..0`). |
 | `0x07` | `WriteEEPROM` | ≤10 data bytes per command. |
 | `0x08` | `ReadEEPROM` | ≤10 data bytes per command. |
-| `0x0E` | `GetCurProfile` | |
-| `0x0F` | — | boolean query; answers `01 01`, unchanging. |
-| `0x10` | — | `payload[4]=1, payload[5]=arg`; profile select. |
+| `0x09` | — (`0x411959`) | Hardware factory restore (`SendCMD(0x09, 0)`). |
+| `0x0A` | — (`0x44f780`) | **Unsolicited** input report (`09 0a …`) on physical DPI (`0x01`) or profile (`0x04`) button changes; never a reply to a host command. |
+| `0x0E` | `GetCurProfile` | Active profile index (0-based). |
+| `0x0F` | — | boolean query / profile bank query; answers `01 01` when linked. |
+| `0x10` | — (`0x450710`) | `payload[4]=1, payload[5]=arg`; profile select. |
 
-Sweeping the command byte space turned up more that answer — `0x05`, `0x06`,
-`0x09` and `0x0D` all return a well-formed reply — but only `0x04` has a known
-meaning. **`0x0D` is not safe to send.** Probing it reset the receiver: the
+**`0x0D` is not safe to send.** Probing it reset the receiver: the
 device re-enumerated on the USB bus and came back on a *different* on-board
 profile, which rewrote the live lighting and DPI stage colours from another
 bank. Nothing was damaged and a `restore` put it back, but treat `0x0D` as
-destructive and take a backup before going near the unknown commands.
+destructive and take a backup before going near unknown commands.
+
+### 2.4 GHz RF pairing — `0x05` and `0x06`
+
+`OemDrv.exe` itself does not expose a pairing dialog, so commands `0x05` and
+`0x06` were confirmed directly against `25a7:fa7c` and `25a7:fa7b`:
+
+* Wired mode (`25a7:fa7b`) refuses both with status `0x01`; only the 2.4 GHz
+  receiver (`25a7:fa7c`) implements them.
+* Freshly plugging the receiver in leaves `0x06` at `06 00 00 00 02 00 00`
+  (`state = 0`, idle). Sending `0x05` (`08 05 00 … 48`) transitions `0x06` to
+  `06 00 00 00 02 01 17` (`state = 1`, `0x17 = 23` seconds remaining), counting
+  down once per second to `06 00 00 00 02 02 00` (`state = 2`, timed out) if no
+  mouse completes a handshake, or back to `00 00` with `GetConnectStatus = 1`
+  once paired.
+* On the mouse (`CX52850`), flipping the bottom switch to `2.4G` and holding
+  **Left + Middle + Right** for 3–4 seconds enters code-matching mode (rapid
+  LED blink). Immediately moving or clicking the mouse after re-pairing keeps
+  the RF state machine from settling; leaving the mouse untouched for ~5–15
+  seconds lets the link commit and resume normal HID motion reports.
 
 There is a second profile image at **`0x1B00`**, immediately after the macro
 region ends (`0x300 + 16 x 0x180`). Its first 44 bytes matched the live

@@ -57,6 +57,7 @@ PySide6 is needed only for the GUI, which is why it is an extra.
 ./m693ctl info                       # everything the mouse currently holds
 ./m693ctl battery                    # charge, and whether it is charging
 ./m693ctl battery -q                 # just the number, for a status bar
+./m693ctl pair                       # re-pair the mouse with its 2.4G USB receiver
 
 ./m693ctl rate 1000                  # polling rate: 125 / 250 / 500 / 1000 Hz
 ./m693ctl dpi 800 1600 3200          # replace the DPI stages

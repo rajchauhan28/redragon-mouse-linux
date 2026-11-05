@@ -10,10 +10,11 @@ Host -> device is HID *feature report 0x08* on the vendor collection
 
     [0]     0x08                report id
     [1]     command
-    [2]     addr bits 16..23    (always 0 on this device)
+    [2]     0x00                reserved (always 0 on this device)
     [3]     addr bits 8..15
-    [4]     length / sub-arg
-    [5..15] payload
+    [4]     addr bits 0..7
+    [5]     length / sub-arg
+    [6..15] payload (up to 10 bytes)
     [16]    checksum = (0x55 - sum(bytes[0..15])) & 0xFF
 
 Device -> host is HID *input report 0x09* on the same interface
@@ -46,15 +47,24 @@ REPORT_IN = 0x09
 PACKET_LEN = 17
 MAX_PAYLOAD = 10  # bytes of data per EEPROM read/write command
 
-# Commands recovered from OemDrv.exe.
+# Commands recovered from OemDrv.exe and receiver probing.
+CMD_CHECK_PSD = 0x01  # CheckPsd - nonce echo + CID/MID identity
 CMD_DRIVER_STATUS = 0x02  # TellDrvStatus(on)
 CMD_CONNECT_STATUS = 0x03  # GetConnectStatus
 CMD_GET_POWER = 0x04  # GetPower - battery charge and charging flag
+CMD_ENTER_PAIR = 0x05  # 2.4 GHz receiver only: open ~24 s RF pairing window
+CMD_PAIR_STATUS = 0x06  # 2.4 GHz receiver only: pairing state + seconds left
 CMD_WRITE = 0x07  # WriteEEPROM
 CMD_READ = 0x08  # ReadEEPROM
+CMD_RESTORE_DEFAULTS = 0x09  # factory restore
+CMD_EVENT = 0x0A  # unsolicited input report (DPI / profile button press)
 CMD_CUR_PROFILE = 0x0E  # GetCurProfile
 CMD_QUERY_0F = 0x0F
 CMD_SET_PROFILE = 0x10
+
+PAIR_IDLE = 0
+PAIR_LISTENING = 1
+PAIR_TIMEOUT = 2
 
 # Marker for the vendor feature collection (usage page 0xFF02, report id 8)
 # inside the HID report descriptor.  Interface 1 carries it; interface 0 is
@@ -85,16 +95,7 @@ def checksum(data: bytes) -> int:
     return (0x55 - sum(data)) & 0xFF
 
 
-def find_devices() -> list[str]:
-    """Vendor-control interfaces present, the most likely to answer first.
-
-    Plugging the cable in puts the mouse into wired mode: it enumerates in its
-    own right as ``PID_WIRED`` while the receiver stays on the bus with nothing
-    linked to it.  That receiver still answers - it reports the mouse offline
-    and hands back the *last* battery reading it saw - so picking it over a
-    mouse that is sitting right there leaves everything stuck on "asleep".
-    A directly connected mouse is certainly present, so it goes first.
-    """
+def _find_nodes(pids: tuple[int, ...]) -> list[tuple[bool, str]]:
     found = []
     for sysfs in sorted(glob.glob("/sys/class/hidraw/hidraw*")):
         try:
@@ -111,7 +112,7 @@ def find_devices() -> list[str]:
         if len(parts) != 3:
             continue
         vid, pid = int(parts[1], 16), int(parts[2], 16)
-        if vid != VENDOR_ID or pid not in PRODUCT_IDS:
+        if vid != VENDOR_ID or pid not in pids:
             continue
         try:
             descriptor = open(
@@ -121,7 +122,30 @@ def find_devices() -> list[str]:
             continue
         if _FEATURE_COLLECTION in descriptor:
             found.append((pid != PID_WIRED, "/dev/" + os.path.basename(sysfs)))
-    return [path for _receiver, path in sorted(found)]
+    return sorted(found)
+
+
+def find_devices() -> list[str]:
+    """Vendor-control interfaces present, the most likely to answer first.
+
+    Plugging the cable in puts the mouse into wired mode: it enumerates in its
+    own right as ``PID_WIRED`` while the receiver stays on the bus with nothing
+    linked to it.  That receiver still answers - it reports the mouse offline
+    and hands back the *last* battery reading it saw - so picking it over a
+    mouse that is sitting right there leaves everything stuck on "asleep".
+    A directly connected mouse is certainly present, so it goes first.
+    """
+    return [path for _receiver, path in _find_nodes(PRODUCT_IDS)]
+
+
+def find_receivers() -> list[str]:
+    """2.4 GHz receiver (``25a7:fa7c``) vendor-control nodes only.
+
+    Pairing commands (``0x05`` / ``0x06``) are handled locally by the receiver
+    MCU and rejected by the wired mouse, so ``pair`` must target ``PID_RECEIVER``
+    even if the USB-C cable is plugged in at the same time.
+    """
+    return [path for _receiver, path in _find_nodes((PID_RECEIVER,))]
 
 
 class Device:
@@ -322,6 +346,37 @@ class Device:
     def set_driver_status(self, active: bool) -> None:
         """TellDrvStatus - tells the mouse a configuration tool is attached."""
         self.command(bytes([CMD_DRIVER_STATUS, 0, 0, 0, 1, 1 if active else 0]))
+
+    def release(self) -> None:
+        """Best-effort TellDrvStatus(False) on teardown without stalling exit.
+
+        A full ``set_driver_status(False)`` retries nine times and nudges the
+        link, which stalls shutdown for seconds and raises a secondary error if
+        the mouse dozed off or was unplugged before exit.  One short attempt
+        clears the flag when the device is listening and gives up quietly when
+        it is not.
+        """
+        if getattr(self, "fd", None) is None:
+            try:
+                self.set_driver_status(False)
+            except (DeviceError, OSError):
+                pass
+            return
+        try:
+            self._drain()
+            self._send(bytes([CMD_DRIVER_STATUS, 0, 0, 0, 1, 0]))
+            self._recv(CMD_DRIVER_STATUS, timeout=0.15)
+        except (DeviceError, OSError):
+            pass
+
+    def enter_pair(self) -> None:
+        """Open a ~24-second 2.4 GHz RF pairing window on the receiver."""
+        self.command(bytes([CMD_ENTER_PAIR]))
+
+    def pair_status(self) -> tuple[int, int]:
+        """Receiver pairing `(state, seconds_left)`: 0 idle, 1 listening, 2 timed out."""
+        reply = self.command(bytes([CMD_PAIR_STATUS]))
+        return reply[5], reply[6]
 
     def connect_status(self) -> int:
         return self.command(bytes([CMD_CONNECT_STATUS]))[5]
