@@ -8,10 +8,13 @@
 
 > **Disclaimer:** This project is not from the actual Redragon company. Use it at your own risk. This is an open-source project created only to make life easier for Redragon mouse users on Linux. For other mouse types, I'll be happy to discuss further if anyone with another Redragon mouse is willing to participate in testing.
 
-<img width="1860" height="1195" alt="screenshot_20260925_000601" src="https://github.com/user-attachments/assets/1741298d-3df3-442f-bdd2-e0054c6f812c" />
-<img width="1857" height="1191" alt="screenshot_20260925_000611" src="https://github.com/user-attachments/assets/ba84686b-25f2-47a2-9bd8-7f6d23ebc52c" />
-<img width="1860" height="1200" alt="screenshot_20260925_000622" src="https://github.com/user-attachments/assets/7c06d9f3-7f34-440a-b7b5-358986093ff0" />
-<img width="1857" height="1193" alt="screenshot_20260925_000629" src="https://github.com/user-attachments/assets/10156695-a7d2-43c2-a8d6-e6d0e838dafa" />
+![Key Settings](https://github.com/user-attachments/assets/1741298d-3df3-442f-bdd2-e0054c6f812c)
+
+![DPI Settings](https://github.com/user-attachments/assets/ba84686b-25f2-47a2-9bd8-7f6d23ebc52c)
+
+![Macro](https://github.com/user-attachments/assets/7c06d9f3-7f34-440a-b7b5-358986093ff0)
+
+![Lighting](https://github.com/user-attachments/assets/10156695-a7d2-43c2-a8d6-e6d0e838dafa)
 
 
 
@@ -132,7 +135,7 @@ exits immediately while the mouse is asleep instead of blocking your bar):
 
 ```jsonc
 "custom/mouse-battery": {
-  "exec": "p=$(m693ctl --wait 0 battery -q 2>/dev/null) && echo \"󰍽 ${p}%\"",
+  "exec": "p=$(m693ctl --wait 0 battery -q 2>/dev/null) && echo \"Mouse ${p}%\"",
   "interval": 60,
   "tooltip": false
 }
