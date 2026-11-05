@@ -1,5 +1,10 @@
 # m693ctl — Redragon M693-RGB on Linux
 
+[![CI](https://github.com/rajchauhan28/redragon-mouse-linux/actions/workflows/ci.yml/badge.svg)](https://github.com/rajchauhan28/redragon-mouse-linux/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/rajchauhan28/redragon-mouse-linux)](https://github.com/rajchauhan28/redragon-mouse-linux/releases)
+[![License: MIT](https://img.shields.io/github/license/rajchauhan28/redragon-mouse-linux)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B%20(zero%20deps)-blue)](pyproject.toml)
+
 > **Disclaimer:** This project is not from the actual Redragon company. Use it at your own risk. This is an open-source project created only to make life easier for Redragon mouse users on Linux. For other mouse types, I'll be happy to discuss further if anyone with another Redragon mouse is willing to participate in testing.
 
 <img width="1860" height="1195" alt="screenshot_20260925_000601" src="https://github.com/user-attachments/assets/1741298d-3df3-442f-bdd2-e0054c6f812c" />
@@ -20,7 +25,7 @@ Pure Python 3.9+, no third-party dependencies.
 
 ## Install
 
-On Arch and derivatives, build the package:
+On Arch and derivatives (EndeavourOS, CachyOS, Manjaro), build the package — or grab `m693ctl-*.pkg.tar.zst` from [Releases](https://github.com/rajchauhan28/redragon-mouse-linux/releases):
 
 ```sh
 makepkg -si                      # driver, CLI, GUI, udev rule, desktop entry
@@ -29,11 +34,17 @@ makepkg -si                      # driver, CLI, GUI, udev rule, desktop entry
 `pyside6` is an optional dependency, so `m693ctl` works on a machine without
 Qt; install it if you want `m693-gui`.
 
-Anywhere else:
+On Ubuntu, Fedora, Debian, openSUSE, NixOS, or any other distro:
 
 ```sh
 tools/install.sh                 # udev rule, input group, desktop entry
-pip install --user '.[gui]'      # optional: puts m693ctl and m693-gui on PATH
+pipx install '.[gui]'            # or: pip install --user '.[gui]'
+```
+
+Or install the CLI/GUI straight from GitHub with `pipx` (then drop [`99-redragon-m693.rules`](99-redragon-m693.rules) into `/etc/udev/rules.d/`):
+
+```sh
+pipx install 'git+https://github.com/rajchauhan28/redragon-mouse-linux.git#egg=m693ctl[gui]'
 ```
 
 Re-plug the receiver afterwards, then verify with:
@@ -109,6 +120,20 @@ you want `--color` to be visible.
 `dump` with no `-o` hex-dumps instead, and `--addr` / `--length` let you look
 anywhere (e.g. `--addr 0x100` for the macro area). `raw` writes arbitrary bytes
 without adding checksums, for protocol work.
+
+### Waybar / status-bar battery module
+
+Because the mouse does not expose a standard HID Battery Service, UPower and
+desktop applets never list it. Poll `m693ctl --wait 0 battery -q` (`--wait 0`
+exits immediately while the mouse is asleep instead of blocking your bar):
+
+```jsonc
+"custom/mouse-battery": {
+  "exec": "p=$(m693ctl --wait 0 battery -q 2>/dev/null) && echo \"󰍽 ${p}%\"",
+  "interval": 60,
+  "tooltip": false
+}
+```
 
 ## Graphical interface
 
@@ -190,6 +215,8 @@ python3 tests/test_shell.py
 python3 tests/test_macro_tab.py
 python3 tests/test_unknowns.py
 python3 tests/test_battery.py     # protocol half runs without Qt
+python3 tests/test_pairing_and_cleanup.py
+python3 tests/test_inspect_installer.py
 ```
 
 ## As a library
@@ -208,6 +235,25 @@ with Device() as dev:
     P.set_dpi_stages(dev, [400, 800, 1600, 3200])
     P.set_led_color(dev, (0xFF, 0x00, 0x80))
 ```
+
+## Other wireless Redragon mice (`25a7:faXX`)
+
+Many wireless Redragon mice — including the M913 Impact Elite, M810 Pro, M686
+Vampire Elite, M724, and M612 Pro — are built on the same Compx / Areson
+`25a7:faXX` platform and ship the same `OemDrv.exe` + `Cfg.ini` Windows
+configuration tool.
+
+If you own another wireless Redragon mouse and want Linux support:
+
+1. Check your USB IDs (plug in both the 2.4 GHz receiver and USB-C cable if possible):
+   ```sh
+   lsusb -d 25a7:
+   ```
+2. Extract its capability table from Redragon's Windows `.exe` installer (no Windows needed, only `innoextract`):
+   ```sh
+   python3 tools/inspect_installer.py "REDRAGON_Mxxx_Setup.exe"
+   ```
+3. Open a [**Device Support** issue](https://github.com/rajchauhan28/redragon-mouse-linux/issues/new?template=new-mouse-model.yml) with both outputs. Do **not** run write commands against an untested model before backing up its flash.
 
 ## Notes and caveats
 
@@ -293,5 +339,6 @@ m693gui/                   the Qt front-end (app, model, worker, tabs, widgets)
 packaging/                 .desktop entry
 tools/install.sh           udev rule + desktop entry
 tools/extract_assets.py    pulls the mouse renders out of the Windows installer
+tools/inspect_installer.py extracts VID/PID, sensor & DPI tables for other models
 PROTOCOL.md                the reverse-engineering write-up
 ```

@@ -4,7 +4,7 @@ pkgver=1.3.0
 pkgrel=1
 pkgdesc="Driver, CLI and GUI for the Redragon M693-RGB gaming mouse"
 arch=('any')
-url="https://github.com/rajchauhan28/m693-linux"
+url="https://github.com/rajchauhan28/redragon-mouse-linux"
 license=('MIT')
 # The driver and CLI need nothing but python; Qt is only for the GUI, so it is
 # an optional dependency rather than a hard one - m693ctl stays usable on a
@@ -40,6 +40,7 @@ check() {
     python tests/test_retry.py
     python tests/test_battery.py
     python tests/test_pairing_and_cleanup.py
+    python tests/test_inspect_installer.py
     if python -c 'import PySide6' 2>/dev/null; then
         export QT_QPA_PLATFORM=offscreen
         for t in tests/test_*.py; do python "$t" || return 1; done

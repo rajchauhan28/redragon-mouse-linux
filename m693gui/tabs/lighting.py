@@ -65,7 +65,7 @@ class LightingTab(QWidget):
         row.addLayout(right, 1)
 
         model.loaded.connect(self._on_loaded)
-        model.changed.connect(lambda _: self.sync())
+        model.changed.connect(self.sync)
 
     # -- construction ------------------------------------------------------
     def _build_left(self) -> QFrame:
@@ -252,7 +252,7 @@ class LightingTab(QWidget):
         self.sync()
 
     # -- model -> view -----------------------------------------------------
-    def sync(self) -> None:
+    def sync(self, *_args) -> None:
         if not self.model.is_loaded:
             return
         profile = self.model.profile()

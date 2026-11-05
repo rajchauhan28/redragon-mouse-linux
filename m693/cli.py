@@ -85,7 +85,9 @@ def cmd_pair(args, dev: Device) -> int:
         f"m693ctl: receiver {dev.path} is listening for 2.4 GHz pairing:\n"
         "  1. Unplug the USB-C cable, flip the bottom switch to 2.4G, and hold\n"
         "     the mouse within ~10 cm of the receiver.\n"
-        "  2. Hold Left + Middle + Right for 3-4 s until the LED flashes rapidly.",
+        "  2. Hold Left + Middle + Right for 3-4 s until the LED flashes rapidly.\n"
+        "  (If your mouse is already paired and just asleep, click/move it first;\n"
+        "   Ctrl-C cancels without unpairing.)",
         file=sys.stderr,
     )
 

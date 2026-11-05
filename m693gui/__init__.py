@@ -1,2 +1,4 @@
 """PySide6 front-end for the Redragon M693 driver."""
-__version__ = "1.0.0"
+from m693 import __version__
+
+__all__ = ["__version__"]

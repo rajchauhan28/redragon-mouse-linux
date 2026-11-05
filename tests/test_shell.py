@@ -165,6 +165,8 @@ def test_the_driver_does_not_import_qt():
 
 
 def test_both_front_ends_report_a_version():
+    import m693
+
     for module, flag in (("m693.cli", "m693ctl"), ("m693gui.app", "m693-gui")):
         done = subprocess.run(
             [sys.executable, "-c",
@@ -172,7 +174,8 @@ def test_both_front_ends_report_a_version():
             capture_output=True, text=True, cwd=ROOT,
             env={**os.environ, "QT_QPA_PLATFORM": "offscreen"},
         )
-        assert flag in done.stdout, (module, done.stdout, done.stderr)
+        expected = f"{flag} {m693.__version__}"
+        assert expected in done.stdout, (module, expected, done.stdout, done.stderr)
 
 
 if __name__ == "__main__":

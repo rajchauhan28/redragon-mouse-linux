@@ -1,0 +1,46 @@
+name: Request support for another Redragon mouse
+description: Share your mouse's USB IDs and Cfg.ini so we can check compatibility with this Compx/Areson protocol
+title: "[Device Support] Redragon <Model Name> (25a7:xxxx)"
+labels: ["device-support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Many wireless Redragon mice (`25a7:faXX` — M913, M810 Pro, M686, M724, M612 Pro, etc.) share the same `OemDrv.exe` + `Cfg.ini` protocol as the M693-RGB.
+        Run the two commands below and paste the output — **do not run `m693ctl` write commands against an untested model without backing up first.**
+
+  - type: input
+    id: model
+    attributes:
+      label: Mouse model name
+      placeholder: e.g. Redragon M810 Pro Wireless / M913 Impact Elite
+    validations:
+      required: true
+
+  - type: textarea
+    id: lsusb
+    attributes:
+      label: USB IDs (`lsusb` wired + wireless receiver)
+      description: Plug in both the 2.4G receiver and the USB-C cable if available, then run `lsusb -d 25a7:` (or full `lsusb`).
+      render: text
+      placeholder: |
+        Bus 001 Device 007: ID 25a7:fa7c Areson Technology Corp 2.4G Wireless Receiver
+        Bus 001 Device 008: ID 25a7:fa7b Areson Technology Corp Compx 3-Mode Mouse
+    validations:
+      required: true
+
+  - type: textarea
+    id: cfg_ini
+    attributes:
+      label: Extracted `Cfg.ini` summary (optional, speeds up support 10x)
+      description: |
+        If Redragon offers a Windows `.exe` installer for your model, run:
+        `python3 tools/inspect_installer.py "path/to/Setup.exe"` (needs `innoextract`) and paste the output here.
+      render: markdown
+
+  - type: checkboxes
+    id: testing
+    attributes:
+      label: Hardware testing
+      options:
+        - label: I have this mouse on Linux and am happy to test read-only discovery / DPI / battery builds.

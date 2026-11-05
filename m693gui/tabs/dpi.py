@@ -59,7 +59,7 @@ class DpiTab(QWidget):
         outer.addLayout(bottom)
 
         model.loaded.connect(self.sync)
-        model.changed.connect(lambda _: self.sync())
+        model.changed.connect(self.sync)
 
     # -- construction ------------------------------------------------------
     def _build_stages(self) -> QFrame:
@@ -126,9 +126,7 @@ class DpiTab(QWidget):
 
         # Flipped: the stored byte is a delay (see lighting.speed_to_raw).
         self.speed = SliderRow("Speed", L.SPEED_MIN, L.SPEED_MAX)
-        self.speed.value_changed.connect(
-            lambda value: self.model.set_dpi_effect_speed(L.speed_to_raw(value))
-        )
+        self.speed.value_changed.connect(self._on_effect_speed)
         layout.addWidget(self.speed)
         layout.addStretch(1)
         return frame
@@ -174,7 +172,7 @@ class DpiTab(QWidget):
         return frame
 
     # -- model -> view -----------------------------------------------------
-    def sync(self) -> None:
+    def sync(self, *_args) -> None:
         if not self.model.is_loaded:
             return
         profile = self.model.profile()
@@ -234,6 +232,10 @@ class DpiTab(QWidget):
     def _on_effect_mode(self, _index: int) -> None:
         if not self._syncing:
             self.model.set_dpi_effect_mode(self.effect_mode.currentData())
+
+    def _on_effect_speed(self, value: int) -> None:
+        if not self._syncing:
+            self.model.set_dpi_effect_speed(L.speed_to_raw(value))
 
     def _on_lod(self, value: int, checked: bool) -> None:
         if checked and not self._syncing:
