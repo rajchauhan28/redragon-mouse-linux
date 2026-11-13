@@ -270,6 +270,136 @@ def test_worker_closes_fd_when_driver_status_fails_on_open():
         W.device_present, W.open_backend = real_present, real_open
 
 
+def test_wait_online_does_not_nudge_while_asleep():
+    events = []
+
+    class SleepingThenWaking(Device):
+        def __init__(self):
+            self.fd = 1
+            self.path = "/dev/hidraw1"
+            self.retries = 1
+            self.polls = 0
+
+        def online(self) -> bool:
+            self.polls += 1
+            events.append(("online", self.polls))
+            return self.polls >= 3
+
+        def _nudge(self) -> None:
+            events.append(("nudge", self.polls))
+
+        def _drain(self) -> None:
+            pass
+
+        def _send(self, payload: bytes) -> None:
+            events.append(("send", payload[0]))
+
+        def _recv(self, command: int, timeout: float = 0.5, match=None):
+            return bytes([command, 0]) + bytes(14)
+
+    real_sleep = D.time.sleep
+    D.time.sleep = lambda _s: None
+    try:
+        dev = SleepingThenWaking()
+        assert dev.wait_online(timeout=2.0) is True
+    finally:
+        D.time.sleep = real_sleep
+
+    # No nudge while online() is False (polls 1 and 2); one nudge after waking
+    # on poll 3 before the confirming CMD_READ (0x08).
+    assert events == [
+        ("online", 1),
+        ("online", 2),
+        ("online", 3),
+        ("nudge", 3),
+        ("send", D.CMD_READ),
+    ], events
+
+
+def test_receiver_local_commands_do_not_trigger_rf_nudge_on_retry():
+    nudges = []
+
+    class SilentReceiver(Device):
+        def __init__(self):
+            self.fd = 1
+            self.path = "/dev/hidraw1"
+            self.retries = 4
+
+        def _nudge(self) -> None:
+            nudges.append(1)
+
+        def _drain(self) -> None:
+            pass
+
+        def _send(self, payload: bytes) -> None:
+            pass
+
+        def _recv(self, command: int, timeout: float = 0.5, match=None):
+            return None
+
+    real_sleep = D.time.sleep
+    D.time.sleep = lambda _s: None
+    try:
+        dev = SilentReceiver()
+        for cmd in (D.CMD_CONNECT_STATUS, D.CMD_PAIR_STATUS, D.CMD_ENTER_PAIR):
+            try:
+                dev.command(bytes([cmd]))
+            except DeviceError:
+                pass
+        assert nudges == [], f"receiver-local command triggered RF nudge: {nudges}"
+
+        # By contrast, a mouse-relayed command (CMD_READ) still nudges on attempt 3.
+        try:
+            dev.command(bytes([D.CMD_READ, 0, 0, 0, 1]))
+        except DeviceError:
+            pass
+        assert nudges == [1], nudges
+    finally:
+        D.time.sleep = real_sleep
+
+
+def test_gui_does_not_reread_full_eeprom_on_sleep_wake():
+    if not HAVE_QT:
+        print("    (skipped: PySide6 not installed)")
+        return
+    from m693gui.app import MainWindow
+    from m693gui.backend import STOCK_IMAGE
+    from m693gui.worker import ASLEEP, DISCONNECTED, ONLINE
+
+    win = MainWindow(use_fake=True)
+    try:
+        with open(STOCK_IMAGE, "rb") as fh:
+            win.model.load(fh.read())
+        win._link_state = ONLINE
+        assert win.model.is_loaded is True
+        reads = []
+        flushes = []
+        win.read_requested.connect(lambda: reads.append(1))
+        win.model.flush_requested.connect(lambda runs, _img: flushes.append(runs))
+
+        # Waking from 60s dormancy (ASLEEP -> ONLINE) with an already loaded
+        # model must NOT re-read all 704 bytes of EEPROM over RF.
+        win._on_link_state(ASLEEP)
+        win._on_link_state(ONLINE)
+        assert reads == [], f"unexpected full EEPROM re-read on wake: {reads}"
+
+        # Dirty edits queued while asleep are still flushed on wake.
+        win._on_link_state(ASLEEP)
+        win.model.set_polling_rate(500)
+        win.model._timer.stop()  # hold until wake flush
+        assert win.model.is_dirty is True
+        win._on_link_state(ONLINE)
+        assert reads == [], reads
+        assert len(flushes) == 1, flushes
+
+        # Reconnecting after an actual USB disconnect DOES re-read the profile.
+        win._on_link_state(DISCONNECTED)
+        win._on_link_state(ONLINE)
+        assert len(reads) == 1, reads
+    finally:
+        win.close()
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

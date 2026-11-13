@@ -1,6 +1,7 @@
 post_install() {
     udevadm control --reload-rules 2>/dev/null || true
-    udevadm trigger --subsystem-match=hidraw 2>/dev/null || true
+    udevadm trigger --action=change --subsystem-match=hidraw 2>/dev/null || true
+    udevadm trigger --action=change --subsystem-match=usb --attr-match=idVendor=25a7 2>/dev/null || true
     cat <<'EOF'
 
 m693ctl installed.
@@ -19,6 +20,8 @@ EOF
 
 post_upgrade() {
     udevadm control --reload-rules 2>/dev/null || true
+    udevadm trigger --action=change --subsystem-match=hidraw 2>/dev/null || true
+    udevadm trigger --action=change --subsystem-match=usb --attr-match=idVendor=25a7 2>/dev/null || true
 }
 
 post_remove() {

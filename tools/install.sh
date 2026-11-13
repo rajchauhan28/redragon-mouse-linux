@@ -12,6 +12,8 @@ prefix=${PREFIX:-$HOME/.local}
 echo "Installing the udev rule (needs root)…"
 sudo install -m 0644 "$here/99-redragon-m693.rules" /etc/udev/rules.d/
 sudo udevadm control --reload-rules
+sudo udevadm trigger --action=change --subsystem-match=hidraw --attr-match=idVendor=25a7 2>/dev/null || true
+sudo udevadm trigger --action=change --subsystem-match=usb --attr-match=idVendor=25a7 2>/dev/null || true
 
 # The rule TAGs the node with uaccess, which covers a logged-in seat.  The
 # input group is the fallback for the cases uaccess does not reach - a remote

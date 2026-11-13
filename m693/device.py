@@ -66,6 +66,15 @@ PAIR_IDLE = 0
 PAIR_LISTENING = 1
 PAIR_TIMEOUT = 2
 
+# Commands answered locally by the 2.4 GHz USB receiver MCU rather than relayed
+# over RF to the mouse.  Retrying them must not trigger RF wake nudges.
+_RECEIVER_LOCAL_CMDS = (
+    CMD_DRIVER_STATUS,
+    CMD_CONNECT_STATUS,
+    CMD_ENTER_PAIR,
+    CMD_PAIR_STATUS,
+)
+
 # Marker for the vendor feature collection (usage page 0xFF02, report id 8)
 # inside the HID report descriptor.  Interface 1 carries it; interface 0 is
 # the plain mouse and must not be touched.
@@ -267,7 +276,11 @@ class Device:
             raise DeviceError("the device has been closed")
         last = None
         for attempt in range(self.retries):
-            if attempt and attempt % 3 == 0 and payload[0] != CMD_DRIVER_STATUS:
+            if (
+                attempt
+                and attempt % 3 == 0
+                and payload[0] not in _RECEIVER_LOCAL_CMDS
+            ):
                 self._nudge()
             self._drain()
             self._send(payload)
@@ -327,19 +340,23 @@ class Device:
         """
         deadline = None if timeout is None else time.monotonic() + timeout
         told = False
+        slept = False
         while True:
             if self.online():
+                if slept:
+                    self._nudge()
                 # Confirm with a read, which must be relayed to the mouse.
                 self._drain()
                 self._send(bytes([CMD_READ, 0, 0, 0, 1]))
                 if self._recv(CMD_READ, timeout=0.4) is not None:
                     return True
+                self._nudge()
+            slept = True
             if notify is not None and not told:
                 notify()
                 told = True
             if deadline is not None and time.monotonic() >= deadline:
                 return False
-            self._nudge()
             time.sleep(0.2)
 
     # -- high level primitives --------------------------------------------

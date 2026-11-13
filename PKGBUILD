@@ -1,6 +1,6 @@
 # Maintainer: Raj singh chauhan <rishabhjain27082004@gmail.com>
 pkgname=m693ctl
-pkgver=1.3.1
+pkgver=1.3.2
 pkgrel=1
 pkgdesc="Driver, CLI and GUI for the Redragon M693-RGB gaming mouse"
 arch=('any')

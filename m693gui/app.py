@@ -176,7 +176,11 @@ class MainWindow(QMainWindow):
         else:
             self.banner.clear()
             self.status_label.setText("Connected")
-            if previous != ONLINE or not self.model.is_loaded:
+            # Only pull the full 704-byte EEPROM image on initial connect (or
+            # after an unplug), not on every 60-second dormancy wake — otherwise
+            # touching the mouse triggers 72 back-to-back RF read packets right
+            # as the user starts moving the cursor.
+            if previous == DISCONNECTED or not self.model.is_loaded:
                 self.read_requested.emit()
             if self.model.is_dirty:
                 self.model.flush()

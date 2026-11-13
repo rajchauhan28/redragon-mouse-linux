@@ -124,9 +124,10 @@ class DeviceWorker(QObject):
             self._close()
             self._set_state(DISCONNECTED)
             return
+        woke = awake and self._state != ONLINE
         self._set_state(ONLINE if awake else ASLEEP)
         self._ticks += 1
-        if awake and self._ticks % BATTERY_EVERY == 1:
+        if awake and (woke or self._ticks % BATTERY_EVERY == 1):
             self._read_battery()
 
     def _read_battery(self) -> None:
